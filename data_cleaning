@@ -1,0 +1,130 @@
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("ggplot2")
+install.packages("janitor")
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+
+#load the tables
+jan_trips <- read.csv("202201-divvy-tripdata.csv")
+feb_trips <- read.csv("202202-divvy-tripdata.csv")
+mar_trips <- read.csv("202203-divvy-tripdata.csv")
+apr_trips <- read.csv("202204-divvy-tripdata.csv")
+may_trips <- read.csv("202205-divvy-tripdata.csv")
+jun_trips <- read.csv("202206-divvy-tripdata.csv")
+jul_trips <- read.csv("202207-divvy-tripdata.csv")
+aug_trips <- read.csv("202208-divvy-tripdata.csv")
+sep_trips <- read.csv("202209-divvy-publictripdata.csv")
+oct_trips <- read.csv("202210-divvy-tripdata.csv")
+nov_trips <- read.csv("202211-divvy-tripdata.csv")
+dec_trips <- read.csv("202212-divvy-tripdata.csv")
+
+#combine the 12 tables into one dataset
+trips_2022 <- rbind(jan_trips,feb_trips,mar_trips,
+apr_trips,may_trips,jun_trips,jul_trips, aug_trips, 
+sep_trips, oct_trips,nov_trips, dec_trips)
+
+str(trips_2022)
+
+#check that the sum of the 12 tables
+sum(nrow(jan_trips),nrow(feb_trips), nrow(mar_trips),
+    nrow(apr_trips), nrow(may_trips), nrow(jun_trips),
+    nrow(jul_trips), nrow(aug_trips), nrow(sep_trips),
+    nrow(oct_trips), nrow(nov_trips), nrow(dec_trips))
+
+dim(trips_2022)
+
+#remove columns not needed
+trips_2022 <- trips_2022 %>%
+  select(-c(start_station_id, end_station_id))
+
+colnames(trips_2022)
+str(trips_2022)
+View(trips_2022)
+
+#remove blank rows
+trips_2022 <- trips_2022[!(trips_2022$ride_id == "" | 
+                             trips_2022$start_station_name == "" | 
+                             trips_2022$end_station_name == ""),]
+
+#check how many rows removed
+dim(trips_2022)
+
+#check blanks
+sum(trips_2022$ride_id == "")
+sum(trips_2022$start_station_name == "")
+sum(trips_2022$end_station_name == "")
+
+#remove white space from primary key
+trimws(trips_2022$ride_id)
+
+#check for duplicate values in primary key
+sum(duplicated(trips_2022$ride_id))
+
+#confirm if member contains casual and member only
+trips_2022 %>%
+  count(member_casual)
+
+#check the member count adds back up
+trips_2022 %>%
+  count(member_casual) %>%
+  summarise(sum(n))
+
+View(trips_2022)
+
+#convert the start date and time to one format in new column
+trips_2022$new_format <- parse_date_time(c(trips_2022$started_at), c("mdY HM", "Ymd HMS"))
+sum(is.na(trips_2022$new_format))
+
+#create columns for start month, day of week and time
+trips_2022$startm <- format(trips_2022$new_format, "%B")
+sum(is.na(trips_2022$startm))
+trips_2022$startd <- wday(trips_2022$new_format, label = TRUE)
+sum(is.na(trips_2022$startd))
+trips_2022$startt <- format(trips_2022$new_format, format = "%H:%M")
+sum(is.na(trips_2022$startt))
+View(trips_2022)
+
+#convert the end date and time to one format in new column
+trips_2022$new_endformat <- parse_date_time(c(trips_2022$ended_at), c("mdY HM", "Ymd HMS"))
+sum(is.na(trips_2022$new_endformat))
+
+#create columns for end time
+trips_2022$endt <- format(trips_2022$new_endformat, format = "%H:%M")
+sum(is.na(trips_2022$endt))
+View(trips_2022)
+
+colnames(trips_2022)
+
+#remove unwanted columns
+
+newtrips_2022 <- trips_2022 %>%
+  select(-c(started_at, ended_at, new_format, new_endformat))
+
+View(newtrips_2022)
+
+str(newtrips_2022)
+
+#create column to calculate the length of a ride
+newtrips_2022$ridelength <- (as.POSIXct(newtrips_2022$endt, format='%H:%M')- as.POSIXct(newtrips_2022$startt, format='%H:%M'))
+
+dim(newtrips_2022)
+#check if there are any NA
+sum(is.na(newtrips_2022$ridelength))
+
+View(newtrips_2022)
+
+#convert calculate column to number
+newtrips_2022$ridelength2 <- as.numeric(newtrips_2022$ridelength)
+
+print(class(newtrips_2022$ridelength2))
+
+summary(newtrips_2022$ridelength2)
+
+#remove any trips where less than 60 secs or longer than 24hrs
+newtrips_2022 <- newtrips_2022[!(newtrips_2022$ridelength2 <= 60 | newtrips_2022$ridelength2 >= 86400),]
+dim(newtrips_2022)
