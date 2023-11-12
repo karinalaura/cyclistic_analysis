@@ -1,0 +1,83 @@
+#creating new tables for analysis
+
+#bike preference
+
+bikepref <- newtrips_2022 %>%
+  group_by(rideable_type, member_casual) %>%
+  summarise(number_of_rides = n()) %>%
+  arrange(rideable_type, member_casual)
+
+View(bikepref)
+
+sum(bikepref$number_of_rides)
+
+#checking the number of rides per day
+ridesperday <- newtrips_2022 %>%
+  group_by(startd, member_casual) %>% 
+  summarise(number_of_rides = n()) %>% 
+  arrange(startd, member_casual)
+
+View(ridesperday)
+
+sum(ridesperday$number_of_rides)
+
+#checking the number of rides per month
+
+ridespermonth <- newtrips_2022 %>%
+  group_by(startm, member_casual) %>%
+  summarise(number_of_rides = n()) %>%
+  arrange(startm, member_casual)
+
+View(ridespermonth)
+
+sum(ridespermonth$number_of_rides)
+
+#checking the length of rides per day
+ridelnday <- newtrips_2022 %>%
+  select(startd,member_casual, ridelength)%>%
+  group_by(startd, member_casual)%>%
+  summarise_at(vars(ridelength), list(name = mean))
+
+View(ridelnday)
+
+#checking start locations
+
+ststation <- newtrips_2022 %>%
+  select(member_casual,start_station_name,start_lat, start_lng)%>%
+  group_by(member_casual, start_station_name,start_lat, start_lng)%>%
+  summarise(number_of_rides = n()) %>%
+  arrange(member_casual, start_station_name)
+
+View(ststation)
+
+ststationmem <- ststation %>%
+  group_by(member_casual) %>%
+  top_n(10, number_of_rides)
+
+View(ststationmem)
+
+#checking end locations
+
+endstation <- newtrips_2022 %>%
+  select(member_casual,end_station_name,end_lat, end_lng)%>%
+  group_by(member_casual, end_station_name,end_lat, end_lng)%>%
+  summarise(number_of_rides = n()) %>%
+  arrange(member_casual, end_station_name)
+
+View(endstation)
+
+endstationmem <- endstation %>%
+  group_by(member_casual) %>%
+  top_n(10, number_of_rides)
+
+View(endstationmem)
+
+#exporting the new data frames as CSV files
+
+write.csv(ridesperday,file ="C:\\Users\\Karina\\divvy_trip_data\\ridesperday.csv", row.names=TRUE)
+write.csv(ridespermonth,file ="C:\\Users\\Karina\\divvy_trip_data\\ridespermonth.csv", row.names=TRUE)
+write.csv(bikepref,file ="C:\\Users\\Karina\\divvy_trip_data\\bikepref.csv", row.names=TRUE)
+write.csv(ridelnday,file ="C:\\Users\\Karina\\divvy_trip_data\\ridelnday.csv", row.names=TRUE)
+write.csv(ridelnmth,file ="C:\\Users\\Karina\\divvy_trip_data\\ridelnmth.csv", row.names=TRUE)
+write.csv(ststationmem,file ="C:\\Users\\Karina\\divvy_trip_data\\ststationmem.csv", row.names=TRUE)
+write.csv(endstationmem,file ="C:\\Users\\Karina\\divvy_trip_data\\endstationmem.csv", row.names=TRUE)
